@@ -146,8 +146,8 @@ jobs:
             # Create zip archive
             zip -r "../release-artifacts/tailscale-openwrt-$arch.zip" "tailscale-openwrt-$arch"
             
-            # Also create a standalone binary
-            cp "$binary" "../release-artifacts/tailscale-$arch-binary"
+            # Also create a standalone binary with proper extension
+            cp "$binary" "../release-artifacts/tailscale-$arch.bin"
             
             # Cleanup
             rm -rf "tailscale-openwrt-$arch"
@@ -178,7 +178,7 @@ jobs:
         echo "1. Download the appropriate archive for your device architecture:" >> ../release-notes.md
         echo "   - **ZIP format**: \`tailscale-openwrt-[arch].zip\` (Windows/cross-platform)" >> ../release-notes.md
         echo "   - **TAR.GZ format**: \`tailscale-openwrt-[arch].tar.gz\` (Linux/Unix)" >> ../release-notes.md
-        echo "   - **Standalone binary**: \`tailscale-[arch]-binary\` (direct download)" >> ../release-notes.md
+        echo "   - **Standalone binary**: \`tailscale-[arch].bin\` (direct download)" >> ../release-notes.md
         echo "2. Extract and run the included installation script" >> ../release-notes.md
         echo "3. Follow the usage instructions in the README" >> ../release-notes.md
         echo "" >> ../release-notes.md
