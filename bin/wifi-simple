@@ -1,0 +1,33 @@
+#!/bin/sh
+
+# Simple: AP always works, auto-connect to any available network
+
+# Ensure AP is always up
+uci set wireless.default_radio0.disabled=0
+
+# Get all configured STA networks
+AVAILABLE_SCAN=$(iw dev phy0-ap0 scan 2>/dev/null | grep 'SSID:' | sed 's/.*SSID: //' | tr -d '"')
+
+# Disable all STA interfaces first
+for i in $(seq 1 10); do
+    if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+        uci set wireless.wifinet$i.disabled=1
+    fi
+done
+
+# Enable first available network found
+if [ -n "$AVAILABLE_SCAN" ]; then
+    for i in $(seq 1 10); do
+        if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+            NETWORK_SSID=$(uci get wireless.wifinet$i.ssid)
+            if echo "$AVAILABLE_SCAN" | grep -q "$NETWORK_SSID"; then
+                uci set wireless.wifinet$i.disabled=0
+                logger "WiFi: Connected to $NETWORK_SSID"
+                break
+            fi
+        fi
+    done
+fi
+
+uci commit wireless
+wifi reload >/dev/null 2>&1

@@ -1,0 +1,78 @@
+#!/bin/sh
+
+# Simple WiFi network addition script
+# Usage: wifi-add "SSID" "password" [encryption]
+
+show_usage() {
+    echo "Usage: wifi-add \"SSID\" \"password\" [encryption]"
+    echo ""
+    echo "Examples:"
+    echo "  wifi-add \"Hotel_WiFi\" \"password123\""
+    echo "  wifi-add \"Starbucks\" \"coffee2024\" psk2"
+    echo "  wifi-add \"Open_Network\" \"\" none"
+    echo ""
+    echo "Encryption types: psk2 (default), psk, wpa2, none"
+}
+
+# Check arguments
+if [ $# -lt 1 ]; then
+    show_usage
+    exit 1
+fi
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    show_usage
+    exit 0
+fi
+
+SSID="$1"
+PASSWORD="$2"
+ENCRYPTION="${3:-psk2}"
+
+# Validate SSID
+if [ -z "$SSID" ]; then
+    echo "Error: SSID cannot be empty"
+    exit 1
+fi
+
+# Handle open networks
+if [ -z "$PASSWORD" ] || [ "$ENCRYPTION" = "none" ]; then
+    ENCRYPTION="none"
+    PASSWORD=""
+fi
+
+# Find next available interface number
+NEXT_NUM=1
+while uci get wireless.wifinet$NEXT_NUM.ssid >/dev/null 2>&1; do
+    NEXT_NUM=$((NEXT_NUM + 1))
+done
+
+echo "Adding WiFi network: $SSID"
+
+# Add the network configuration
+uci set wireless.wifinet$NEXT_NUM=wifi-iface
+uci set wireless.wifinet$NEXT_NUM.device='radio0'
+uci set wireless.wifinet$NEXT_NUM.mode='sta'
+uci set wireless.wifinet$NEXT_NUM.network='wwan'
+uci set wireless.wifinet$NEXT_NUM.ssid="$SSID"
+uci set wireless.wifinet$NEXT_NUM.disabled='1'
+
+if [ "$ENCRYPTION" != "none" ]; then
+    uci set wireless.wifinet$NEXT_NUM.encryption="$ENCRYPTION"
+    uci set wireless.wifinet$NEXT_NUM.key="$PASSWORD"
+    echo "  Encryption: $ENCRYPTION"
+else
+    uci set wireless.wifinet$NEXT_NUM.encryption='none'
+    echo "  Encryption: Open network"
+fi
+
+# Commit changes
+if uci commit wireless; then
+    echo "  Interface: wifinet$NEXT_NUM"
+    echo "  Status: Added successfully"
+    echo ""
+    echo "Network will auto-connect when available."
+else
+    echo "Error: Failed to save configuration"
+    exit 1
+fi

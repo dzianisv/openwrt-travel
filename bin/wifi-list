@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# List all configured WiFi networks
+
+echo "Configured WiFi Networks:"
+echo "========================"
+
+AP_SSID=$(uci get wireless.default_radio0.ssid 2>/dev/null)
+if [ -n "$AP_SSID" ]; then
+    echo "AP Mode: $AP_SSID (always active)"
+    echo ""
+fi
+
+echo "Client Networks:"
+FOUND=0
+
+for i in $(seq 1 20); do
+    if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+        SSID=$(uci get wireless.wifinet$i.ssid)
+        ENCRYPTION=$(uci get wireless.wifinet$i.encryption 2>/dev/null || echo "none")
+        DISABLED=$(uci get wireless.wifinet$i.disabled 2>/dev/null || echo "0")
+        
+        if [ "$DISABLED" = "0" ]; then
+            STATUS="[ACTIVE]"
+        else
+            STATUS="[READY]"
+        fi
+        
+        printf "  %-20s %-8s %s\n" "$SSID" "$ENCRYPTION" "$STATUS"
+        FOUND=1
+    fi
+done
+
+if [ $FOUND -eq 0 ]; then
+    echo "  No client networks configured"
+fi
+
+echo ""
+echo "Use 'wifi-add \"SSID\" \"password\"' to add networks"

@@ -1,236 +1,252 @@
-# Tailscale OpenWrt Builds
+# OpenWrt Travel Router
 
-[![Build Tailscale OpenWrt Binaries](https://github.com/dzianisv/tailscale-openwrt-builds/actions/workflows/build-release.yml/badge.svg)](https://github.com/dzianisv/tailscale-openwrt-builds/actions/workflows/build-release.yml)
+[![Build Tailscale OpenWrt Binaries](https://github.com/dzianisv/openwrt-travel/actions/workflows/build-release.yml/badge.svg)](https://github.com/dzianisv/openwrt-travel/actions/workflows/build-release.yml)
 
-Automated builds of minimized Tailscale binaries optimized for OpenWrt devices across multiple architectures.
+Complete OpenWrt travel router solution with Tailscale VPN and intelligent WiFi management for seamless connectivity on the go.
 
-## 🚀 Quick Start
+## 🚀 One-Line Install
 
-1. **Download** the appropriate binary for your device architecture from the [latest release](https://github.com/dzianisv/tailscale-openwrt-builds/releases/latest)
-2. **Extract** the archive to your OpenWrt device
-3. **Install** using the included installation script:
-   ```bash
-   chmod +x install.sh
-   ./install.sh
-   ```
-4. **Connect** to your Tailscale network:
-   ```bash
-   tailscale up --authkey=YOUR_AUTH_KEY
-   ```
+```bash
+wget -O- https://raw.githubusercontent.com/dzianisv/openwrt-travel/main/install.sh | sh
+```
+
+This installs:
+- ✅ **Tailscale VPN** - Secure mesh networking
+- ✅ **WiFi Management Tools** - Simple network configuration  
+- ✅ **Automatic WiFi Switching** - Connects to available networks
+- ✅ **Fault-Tolerant AP** - Your hotspot always works
+
+## 📱 WiFi Management
+
+### Simple Commands
+
+```bash
+# Add any WiFi network
+wifi-add "Hotel_WiFi" "password123"
+
+# Add open network
+wifi-add "Airport_Free" "" none
+
+# List all networks  
+wifi-list
+
+# Remove network
+wifi-remove "Old_Network"
+```
+
+### How It Works
+
+1. **AP Always Active** - Your router's hotspot never goes down
+2. **Auto-Connect** - Automatically connects to configured networks when available
+3. **Zero Management** - No manual switching or monitoring needed
+4. **Travel Ready** - Add networks once, connect everywhere
+
+### Example Travel Setup
+
+```bash
+# Add home WiFi
+wifi-add "Home_WiFi" "mypassword"
+
+# Add hotel chains
+wifi-add "Marriott_Guest" "welcome"
+wifi-add "Hilton_Honors" "guest123"
+
+# Add common networks
+wifi-add "Starbucks" "coffee"
+wifi-add "Airport_Free" "" none
+
+# Your router will auto-connect to whichever is available!
+```
+
+## 🔗 Tailscale VPN Setup
+
+```bash
+# Get auth key from: https://login.tailscale.com/admin/settings/keys
+tailscale up --authkey=YOUR_AUTH_KEY
+
+# Check connection
+tailscale status
+
+# Access your devices from anywhere!
+```
 
 ## 📋 Supported Architectures
 
 | Architecture | Description | Typical Devices |
 |-------------|-------------|-----------------|
-| **armv7** | 32-bit ARM with hardware floating point | Most modern ARM-based routers (Raspberry Pi, newer Linksys, ASUS, etc.) |
-| **arm64** | 64-bit ARM | High-end ARM routers, newer Raspberry Pi models |
-| **mips** | 32-bit MIPS big-endian, software floating point | Older routers (some TP-Link, D-Link models) |
-| **mipsle** | 32-bit MIPS little-endian, software floating point | Some older routers, embedded devices |
+| **armv7** | 32-bit ARM with hardware FP | Most ARM routers, Raspberry Pi |
+| **arm64** | 64-bit ARM | High-end ARM routers, newer Pi models |
+| **mips** | 32-bit MIPS big-endian | Older TP-Link, D-Link routers |
+| **mipsle** | 32-bit MIPS little-endian | Some embedded devices |
 
-## 📦 What's Included
+## 🛠️ Manual Installation
 
-Each release contains:
-
-- **Optimized binaries**: Symbol-stripped, UPX-compressed for minimal size
-- **Installation script**: Automated setup for OpenWrt
-- **Documentation**: Architecture-specific README with usage instructions
-- **Combined functionality**: Single binary handles both `tailscale` and `tailscaled`
-
-## 🔧 Build Features
-
-- ✅ **Minimized size**: ~6MB per binary (down from ~40MB)
-- ✅ **Static linking**: No external dependencies required
-- ✅ **OpenWrt optimized**: Built specifically for embedded Linux
-- ✅ **Multi-architecture**: Supports ARM and MIPS variants
-- ✅ **Automated builds**: GitHub Actions with automatic releases
-- ✅ **UPX compression**: Additional size reduction with runtime decompression
-
-## 🏗️ Building Locally
-
-### Prerequisites
-
-- Go 1.13 or newer
-- git
-- upx (optional, for compression)
-
-### Build Script
+If you prefer manual setup:
 
 ```bash
-# Clone this repository
-git clone https://github.com/dzianisv/tailscale-openwrt-builds.git
-cd tailscale-openwrt-builds
+# Download scripts
+wget https://raw.githubusercontent.com/dzianisv/openwrt-travel/main/bin/wifi-add -O /usr/bin/wifi-add
+wget https://raw.githubusercontent.com/dzianisv/openwrt-travel/main/bin/wifi-list -O /usr/bin/wifi-list
+wget https://raw.githubusercontent.com/dzianisv/openwrt-travel/main/bin/wifi-remove -O /usr/bin/wifi-remove
+chmod +x /usr/bin/wifi-*
 
-# Run the build script
-./build-tailscale-openwrt.sh
+# Set up auto-switching
+echo "*/3 * * * * /usr/bin/wifi-simple" | crontab -
 
-# Binaries will be in the 'binaries' directory
+# Download Tailscale (replace 'armv7' with your architecture)
+wget https://github.com/dzianisv/openwrt-travel/releases/latest/download/tailscale-armv7 -O /usr/bin/tailscale
+chmod +x /usr/bin/tailscale
+ln -sf /usr/bin/tailscale /usr/bin/tailscaled
 ```
 
-### Build Script Options
+## 🔍 Find Your Architecture
 
 ```bash
-./build-tailscale-openwrt.sh --help    # Show help
-./build-tailscale-openwrt.sh --clean   # Clean build directories
-```
-
-## 📱 Installation on OpenWrt
-
-### Method 1: Using Release Archives (Recommended)
-
-1. Download the appropriate `.tar.gz` file for your architecture
-2. Transfer to your OpenWrt device:
-   ```bash
-   scp tailscale-openwrt-armv7.tar.gz root@192.168.1.1:/tmp/
-   ```
-3. Extract and install:
-   ```bash
-   cd /tmp
-   tar -xzf tailscale-openwrt-armv7.tar.gz
-   cd tailscale-openwrt-armv7
-   ./install.sh
-   ```
-
-### Method 2: Manual Installation
-
-1. Download the standalone binary for your architecture
-2. Transfer to your device and make executable:
-   ```bash
-   scp tailscale-armv7 root@192.168.1.1:/usr/bin/tailscale
-   ssh root@192.168.1.1 "chmod +x /usr/bin/tailscale"
-   ssh root@192.168.1.1 "ln -sf /usr/bin/tailscale /usr/bin/tailscaled"
-   ```
-
-## 🔍 Determining Your Architecture
-
-If you're unsure of your device's architecture:
-
-```bash
-# On your OpenWrt device, run:
+# Check architecture
 uname -m
 
 # Common outputs:
-# armv7l     -> use armv7
-# aarch64    -> use arm64  
-# mips       -> use mips
-# mipsel     -> use mipsle
+# armv7l  -> use armv7
+# aarch64 -> use arm64
+# mips    -> use mips  
+# mipsel  -> use mipsle
 ```
 
-Or check `/proc/cpuinfo`:
+## ✨ Features
+
+### Travel Router Benefits
+- **Always-On Hotspot** - Your devices stay connected
+- **Automatic WiFi** - Connects to hotel/cafe networks automatically  
+- **VPN Protection** - All traffic secured through Tailscale
+- **Simple Management** - Add networks with one command
+- **Fault Tolerant** - AP works even when no client networks available
+
+### WiFi Management Features
+- **Smart Auto-Connect** - Automatically switches to available networks
+- **Open Network Support** - Handles both secured and open networks
+- **Simple Commands** - Easy-to-remember wifi-add/list/remove
+- **Status Monitoring** - See which networks are active/ready
+- **Error Recovery** - AP automatically recovers if issues occur
+
+### Tailscale Integration
+- **Optimized Binaries** - 6MB compressed (down from 40MB)
+- **Static Linking** - No external dependencies
+- **Auto-Detection** - Installs correct architecture automatically
+- **Combined Binary** - Single file handles client and daemon
+
+## 🎯 Use Cases
+
+### Business Travel
 ```bash
-cat /proc/cpuinfo | grep -E "(processor|model|architecture)"
+wifi-add "Hotel_Chain_Guest" "welcome123"
+wifi-add "Airport_WiFi" "" none
+wifi-add "Conference_Center" "event2024"
 ```
 
-## ⚙️ Usage
+### Digital Nomad
+```bash
+wifi-add "Coworking_Space" "productivity"
+wifi-add "Cafe_WiFi" "coffee123"  
+wifi-add "Airbnb_Guest" "vacation"
+```
 
-### Basic Commands
+### Home/Backup
+```bash
+wifi-add "Home_Primary" "homepassword"
+wifi-add "Neighbor_Guest" "shared123"
+wifi-add "Mobile_Hotspot" "phonedata"
+```
+
+## 🔧 Advanced Configuration
+
+### Custom WiFi Monitoring Frequency
+The auto-switcher runs every 3 minutes by default. To change:
 
 ```bash
-# Start Tailscale (requires auth key from https://login.tailscale.com/admin/settings/keys)
-tailscale up --authkey=tskey-abcdef...
+# Edit cron for different intervals
+crontab -e
 
-# Check status
-tailscale status
-
-# Show IP addresses
-tailscale ip
-
-# Exit/disconnect
-tailscale down
-
-# Show help
-tailscale --help
+# Examples:
+# */1 * * * * /usr/bin/wifi-simple    # Every minute
+# */5 * * * * /usr/bin/wifi-simple    # Every 5 minutes
 ```
 
-### Service Management
+### Manual WiFi Control
+```bash
+# Force manual connection attempt
+/usr/bin/wifi-simple
 
-The installation creates symbolic links so the binary can be used as both client and daemon:
+# Check what networks are visible
+iw dev phy0-ap0 scan | grep SSID
+
+# View current wireless config
+uci show wireless
+```
+
+## 🏗️ Building from Source
 
 ```bash
-# Client commands
-tailscale status
-tailscale up
-tailscale down
-
-# Daemon (runs automatically)
-tailscaled --help
+git clone https://github.com/dzianisv/openwrt-travel.git
+cd openwrt-travel
+./build-tailscale-openwrt.sh
 ```
-
-## 🤖 Automated Releases
-
-This repository uses GitHub Actions to:
-
-1. **Build** binaries for all supported architectures
-2. **Package** them with installation scripts and documentation  
-3. **Create releases** with versioned artifacts
-4. **Upload** to GitHub Releases for easy download
-
-### Triggering Builds
-
-- **Automatic**: Push a git tag (e.g., `git tag v1.0.0 && git push origin v1.0.0`)
-- **Manual**: Use the "Actions" tab to manually trigger a build
-
-## 📄 Binary Information
-
-| Architecture | Typical Size | Compression Ratio | Static Linked |
-|-------------|-------------|-------------------|---------------|
-| armv7 | ~5.9MB | 84% reduction | ✅ Yes |
-| arm64 | ~6.4MB | 83% reduction | ✅ Yes |
-| mips | ~5.8MB | 85% reduction | ✅ Yes |
-| mipsle | ~5.9MB | 84% reduction | ✅ Yes |
-
-*Sizes may vary based on Tailscale version and build optimizations*
-
-## 🔒 Security Notes
-
-- Binaries are built from the official [Tailscale repository](https://github.com/tailscale/tailscale)
-- All builds are reproducible and use official Go toolchain
-- No modifications to Tailscale source code
-- Static linking ensures no dependency vulnerabilities
 
 ## 🐛 Troubleshooting
 
-### Common Issues
-
-**"Permission denied" when running binary:**
+### WiFi Issues
 ```bash
-chmod +x tailscale
+# Check AP status
+wifi-list
+
+# Restart WiFi
+wifi reload
+
+# Check logs
+logread | grep -i wifi
 ```
 
-**"No such file or directory" on execution:**
-- Verify you downloaded the correct architecture
-- Check with `file tailscale` command
+### Tailscale Issues
+```bash
+# Check status
+tailscale status
 
-**Network connectivity issues:**
-- Ensure your OpenWrt firewall allows Tailscale traffic
-- Check if your router supports the required network features
+# Restart daemon
+killall tailscaled
+tailscaled &
+```
 
-### Getting Help
+### Common Problems
 
-1. Check the [Tailscale OpenWrt documentation](https://tailscale.com/kb/1188/openwrt)
-2. Visit [Tailscale Community](https://github.com/tailscale/tailscale/discussions)
-3. Open an issue in this repository for build-specific problems
+**AP not broadcasting:**
+- Check: `uci get wireless.default_radio0.disabled` should be `0`
+- Fix: `uci set wireless.default_radio0.disabled='0' && uci commit && wifi reload`
 
-## 📝 License
+**Not connecting to networks:**
+- Check: Networks are added with `wifi-list`
+- Check: Networks are in range with `iw dev phy0-ap0 scan | grep YourSSID`
 
-This build system is provided under the same license as Tailscale. The Tailscale binary itself is proprietary software from Tailscale Inc.
+## 📝 Documentation
+
+Full documentation available on device:
+```bash
+cat /etc/wifi-usage.txt
+```
 
 ## 🤝 Contributing
 
-Contributions welcome! Please:
-
 1. Fork the repository
-2. Create a feature branch
-3. Test your changes
+2. Create a feature branch  
+3. Test on real OpenWrt hardware
 4. Submit a pull request
 
-## 🔗 Related Projects
+## 📄 License
 
-- [Official Tailscale](https://github.com/tailscale/tailscale) - The main Tailscale repository
-- [OpenWrt](https://openwrt.org/) - The OpenWrt project
-- [Tailscale OpenWrt Package](https://github.com/openwrt/packages/tree/master/net/tailscale) - Official OpenWrt package
+MIT License - see LICENSE file for details.
+
+The Tailscale binary is proprietary software from Tailscale Inc.
 
 ---
 
-⭐ **Star this repository** if you find it useful!
+⭐ **Star this repository** if it makes your travels easier!
 
-**Disclaimer**: This is an unofficial build system. For official support, please contact Tailscale Inc.
+🛣️ **Happy traveling with your OpenWrt router!**

@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Remove WiFi network by SSID
+# Usage: wifi-remove "SSID"
+
+if [ $# -ne 1 ]; then
+    echo "Usage: wifi-remove \"SSID\""
+    echo ""
+    echo "Example: wifi-remove \"Hotel_WiFi\""
+    exit 1
+fi
+
+TARGET_SSID="$1"
+FOUND=0
+
+for i in $(seq 1 20); do
+    if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+        CURRENT_SSID=$(uci get wireless.wifinet$i.ssid)
+        if [ "$CURRENT_SSID" = "$TARGET_SSID" ]; then
+            echo "Removing network: $TARGET_SSID"
+            uci delete wireless.wifinet$i
+            uci commit wireless
+            echo "Network removed successfully"
+            FOUND=1
+            break
+        fi
+    fi
+done
+
+if [ $FOUND -eq 0 ]; then
+    echo "Network '$TARGET_SSID' not found"
+    echo ""
+    echo "Available networks:"
+    /usr/bin/wifi-list
+    exit 1
+fi
