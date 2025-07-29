@@ -1,0 +1,24 @@
+# Build directories
+tailscale-build/
+binaries/
+release-artifacts/
+
+# Temporary files
+*.tmp
+*.log
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Build artifacts
+*.tar.gz
+*.zip

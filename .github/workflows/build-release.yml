@@ -1,0 +1,222 @@
+name: Build Tailscale OpenWrt Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: true
+        default: true
+        type: boolean
+      tag_name:
+        description: 'Tag name for the release (e.g., v1.0.0)'
+        required: false
+        default: ''
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Install UPX
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y upx-ucl
+        
+    - name: Verify dependencies
+      run: |
+        go version
+        upx --version
+        git --version
+        
+    - name: Build binaries
+      run: |
+        ./build-tailscale-openwrt.sh
+        
+    - name: Prepare release artifacts
+      run: |
+        mkdir -p release-artifacts
+        cd binaries
+        
+        # Create individual archives for each binary
+        for binary in tailscale-*; do
+          if [ -f "$binary" ]; then
+            echo "Preparing $binary..."
+            arch=$(echo "$binary" | sed 's/tailscale-//')
+            
+            # Create archive with binary and info
+            mkdir -p "tailscale-openwrt-$arch"
+            cp "$binary" "tailscale-openwrt-$arch/tailscale"
+            
+            # Create installation script
+            cat > "tailscale-openwrt-$arch/install.sh" << 'EOF'
+#!/bin/sh
+# Tailscale OpenWrt Installation Script
+set -e
+
+BINARY_NAME="tailscale"
+INSTALL_PATH="/usr/bin"
+SERVICE_PATH="/etc/init.d"
+
+echo "Installing Tailscale for OpenWrt..."
+
+# Make binary executable
+chmod +x "$BINARY_NAME"
+
+# Copy to system path
+cp "$BINARY_NAME" "$INSTALL_PATH/$BINARY_NAME"
+ln -sf "$INSTALL_PATH/$BINARY_NAME" "$INSTALL_PATH/tailscaled"
+
+echo "Tailscale installed successfully!"
+echo ""
+echo "Usage:"
+echo "  tailscale up --authkey=YOUR_AUTH_KEY"
+echo "  tailscale status"
+echo ""
+echo "For more information, visit: https://tailscale.com/kb/1188/openwrt"
+EOF
+            
+            chmod +x "tailscale-openwrt-$arch/install.sh"
+            
+            # Create README
+            cat > "tailscale-openwrt-$arch/README.md" << EOF
+# Tailscale for OpenWrt ($arch)
+
+This package contains a minimized Tailscale binary built specifically for OpenWrt devices.
+
+## Architecture
+- **Target**: $arch
+- **Binary Size**: $(ls -lh $binary | awk '{print $5}')
+- **Features**: Combined tailscale + tailscaled functionality
+
+## Installation
+
+1. Extract this archive to your OpenWrt device
+2. Run the installation script:
+   \`\`\`bash
+   chmod +x install.sh
+   ./install.sh
+   \`\`\`
+
+## Usage
+
+1. Start Tailscale:
+   \`\`\`bash
+   tailscale up --authkey=YOUR_AUTH_KEY
+   \`\`\`
+
+2. Check status:
+   \`\`\`bash
+   tailscale status
+   \`\`\`
+
+## Binary Information
+
+- **Static linking**: No external dependencies required
+- **Size optimized**: Debug symbols stripped, UPX compressed
+- **Combined binary**: Single executable handles both client and daemon functions
+
+## Support
+
+For issues and documentation, visit:
+- [Tailscale OpenWrt Guide](https://tailscale.com/kb/1188/openwrt)
+- [Tailscale Community](https://github.com/tailscale/tailscale/discussions)
+EOF
+            
+            # Create tar.gz archive
+            tar -czf "../release-artifacts/tailscale-openwrt-$arch.tar.gz" "tailscale-openwrt-$arch"
+            
+            # Also create a standalone binary with version info
+            cp "$binary" "../release-artifacts/tailscale-$arch"
+            
+            # Cleanup
+            rm -rf "tailscale-openwrt-$arch"
+          fi
+        done
+        
+    - name: Generate release notes
+      run: |
+        cd binaries
+        echo "# Tailscale OpenWrt Builds" > ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "Minimized Tailscale binaries for OpenWrt devices across multiple architectures." >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "## Built Binaries" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        
+        for binary in tailscale-*; do
+          if [ -f "$binary" ]; then
+            arch=$(echo "$binary" | sed 's/tailscale-//')
+            size=$(ls -lh "$binary" | awk '{print $5}')
+            echo "- **$arch**: $size" >> ../release-notes.md
+          fi
+        done
+        
+        echo "" >> ../release-notes.md
+        echo "## Installation" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "1. Download the appropriate archive for your device architecture" >> ../release-notes.md
+        echo "2. Extract and run the included installation script" >> ../release-notes.md
+        echo "3. Follow the usage instructions in the README" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "## Supported Architectures" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "- **armv7**: 32-bit ARM with hardware floating point (most modern ARM routers)" >> ../release-notes.md
+        echo "- **arm64**: 64-bit ARM (newer high-end routers)" >> ../release-notes.md
+        echo "- **mips**: 32-bit MIPS big-endian with software floating point (older routers)" >> ../release-notes.md
+        echo "- **mipsle**: 32-bit MIPS little-endian with software floating point (some older routers)" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "## Build Information" >> ../release-notes.md
+        echo "" >> ../release-notes.md
+        echo "- **Built from**: [Tailscale upstream](https://github.com/tailscale/tailscale)" >> ../release-notes.md
+        echo "- **Go Version**: $(go version | awk '{print $3}')" >> ../release-notes.md
+        echo "- **Build Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> ../release-notes.md
+        echo "- **Optimizations**: Symbol stripping, UPX compression, static linking" >> ../release-notes.md
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: tailscale-openwrt-binaries
+        path: |
+          release-artifacts/
+          release-notes.md
+        retention-days: 30
+        
+    - name: Determine release tag
+      id: release_tag
+      run: |
+        if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        elif [ -n "${{ github.event.inputs.tag_name }}" ]; then
+          echo "tag_name=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag_name=v$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release
+      if: github.event_name == 'push' || github.event.inputs.create_release == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.release_tag.outputs.tag_name }}
+        name: "Tailscale OpenWrt Builds ${{ steps.release_tag.outputs.tag_name }}"
+        body_path: release-notes.md
+        files: |
+          release-artifacts/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
