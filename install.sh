@@ -38,8 +38,11 @@ wget -q "$REPO_URL/bin/wifi-simple" -O "$BIN_DIR/wifi-simple"
 
 chmod +x "$BIN_DIR/wifi-add" "$BIN_DIR/wifi-list" "$BIN_DIR/wifi-remove" "$BIN_DIR/wifi-simple"
 
-# Set up WiFi monitoring
-echo "⚡ Setting up automatic WiFi management..."
+# Set up intelligent WiFi monitoring
+echo "⚡ Setting up intelligent WiFi management..."
+echo "  - Auto-connects to available networks"
+echo "  - Auto-disconnects from unavailable networks"  
+echo "  - Runs every 3 minutes"
 crontab -l 2>/dev/null | grep -v wifi-simple; echo "*/3 * * * * /usr/bin/wifi-simple" | crontab -
 /etc/init.d/cron restart
 

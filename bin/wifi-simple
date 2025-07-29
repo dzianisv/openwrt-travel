@@ -1,33 +1,114 @@
 #!/bin/sh
 
-# Simple: AP always works, auto-connect to any available network
+# WiFi Manager: AP always works, auto-connect/disconnect based on availability
+
+LOG_TAG="WiFi-Manager"
+
+log_msg() {
+    logger "$LOG_TAG: $1"
+}
 
 # Ensure AP is always up
 uci set wireless.default_radio0.disabled=0
 
-# Get all configured STA networks
-AVAILABLE_SCAN=$(iw dev phy0-ap0 scan 2>/dev/null | grep 'SSID:' | sed 's/.*SSID: //' | tr -d '"')
+# Check if STA is currently connected
+check_sta_connection() {
+    iw dev phy0-sta0 link 2>/dev/null | grep -q "Connected to"
+}
 
-# Disable all STA interfaces first
-for i in $(seq 1 10); do
-    if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
-        uci set wireless.wifinet$i.disabled=1
+# Get currently connected network SSID
+get_connected_ssid() {
+    if check_sta_connection; then
+        iw dev phy0-sta0 link 2>/dev/null | grep "SSID:" | sed 's/.*SSID: //' | tr -d '"'
     fi
-done
+}
 
-# Enable first available network found
-if [ -n "$AVAILABLE_SCAN" ]; then
-    for i in $(seq 1 10); do
+# Get available networks from scan
+get_available_networks() {
+    iw dev phy0-ap0 scan 2>/dev/null | grep 'SSID:' | sed 's/.*SSID: //' | tr -d '"'
+}
+
+# Check if a specific network is available
+is_network_available() {
+    local network="$1"
+    local available_networks="$2"
+    echo "$available_networks" | grep -q "^$network$"
+}
+
+# Find which interface is enabled
+get_enabled_interface() {
+    for i in $(seq 1 20); do
         if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
-            NETWORK_SSID=$(uci get wireless.wifinet$i.ssid)
-            if echo "$AVAILABLE_SCAN" | grep -q "$NETWORK_SSID"; then
-                uci set wireless.wifinet$i.disabled=0
-                logger "WiFi: Connected to $NETWORK_SSID"
-                break
+            disabled=$(uci get wireless.wifinet$i.disabled 2>/dev/null || echo "0")
+            if [ "$disabled" = "0" ]; then
+                echo $i
+                return
             fi
         fi
     done
-fi
+}
 
-uci commit wireless
-wifi reload >/dev/null 2>&1
+# Main logic
+main() {
+    # Get current state
+    connected_ssid=$(get_connected_ssid)
+    available_networks=$(get_available_networks)
+    enabled_interface=$(get_enabled_interface)
+    
+    log_msg "Connected: ${connected_ssid:-none}, Available networks: $(echo "$available_networks" | wc -l)"
+    
+    # If we're connected, check if the network is still available
+    if [ -n "$connected_ssid" ]; then
+        if is_network_available "$connected_ssid" "$available_networks"; then
+            log_msg "Connected network '$connected_ssid' still available"
+            return 0
+        else
+            log_msg "Connected network '$connected_ssid' no longer available, disconnecting"
+            # Disable the currently enabled interface
+            if [ -n "$enabled_interface" ]; then
+                uci set wireless.wifinet$enabled_interface.disabled=1
+                uci commit wireless
+                wifi reload >/dev/null 2>&1
+                sleep 3
+            fi
+        fi
+    fi
+    
+    # If not connected or disconnected, find an available network
+    if [ -n "$available_networks" ]; then
+        # Disable all STA interfaces first
+        for i in $(seq 1 20); do
+            if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+                uci set wireless.wifinet$i.disabled=1
+            fi
+        done
+        
+        # Try to connect to first available configured network
+        for i in $(seq 1 20); do
+            if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+                network_ssid=$(uci get wireless.wifinet$i.ssid)
+                if is_network_available "$network_ssid" "$available_networks"; then
+                    log_msg "Connecting to available network: $network_ssid"
+                    uci set wireless.wifinet$i.disabled=0
+                    uci commit wireless
+                    wifi reload >/dev/null 2>&1
+                    return 0
+                fi
+            fi
+        done
+        
+        log_msg "No configured networks available"
+    else
+        log_msg "No networks found in scan"
+        # Disable all STA interfaces if no networks available
+        for i in $(seq 1 20); do
+            if uci get wireless.wifinet$i.ssid >/dev/null 2>&1; then
+                uci set wireless.wifinet$i.disabled=1
+            fi
+        done
+        uci commit wireless
+    fi
+}
+
+# Run main function
+main
