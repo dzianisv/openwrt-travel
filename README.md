@@ -1,12 +1,12 @@
 # Tailscale OpenWrt Builds
 
-[![Build Tailscale OpenWrt Binaries](https://github.com/YOUR_USERNAME/tailscale-openwrt-builds/actions/workflows/build-release.yml/badge.svg)](https://github.com/YOUR_USERNAME/tailscale-openwrt-builds/actions/workflows/build-release.yml)
+[![Build Tailscale OpenWrt Binaries](https://github.com/dzianisv/tailscale-openwrt-builds/actions/workflows/build-release.yml/badge.svg)](https://github.com/dzianisv/tailscale-openwrt-builds/actions/workflows/build-release.yml)
 
 Automated builds of minimized Tailscale binaries optimized for OpenWrt devices across multiple architectures.
 
 ## 🚀 Quick Start
 
-1. **Download** the appropriate binary for your device architecture from the [latest release](https://github.com/YOUR_USERNAME/tailscale-openwrt-builds/releases/latest)
+1. **Download** the appropriate binary for your device architecture from the [latest release](https://github.com/dzianisv/tailscale-openwrt-builds/releases/latest)
 2. **Extract** the archive to your OpenWrt device
 3. **Install** using the included installation script:
    ```bash
@@ -57,7 +57,7 @@ Each release contains:
 
 ```bash
 # Clone this repository
-git clone https://github.com/YOUR_USERNAME/tailscale-openwrt-builds.git
+git clone https://github.com/dzianisv/tailscale-openwrt-builds.git
 cd tailscale-openwrt-builds
 
 # Run the build script
