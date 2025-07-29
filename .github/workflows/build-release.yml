@@ -63,7 +63,7 @@ jobs:
             cp "$binary" "tailscale-openwrt-$arch/tailscale"
             
             # Create installation script
-            cat > "tailscale-openwrt-$arch/install.sh" << 'EOF'
+            cat > "tailscale-openwrt-$arch/install.sh" << 'INSTALL_EOF'
 #!/bin/sh
 # Tailscale OpenWrt Installation Script
 set -e
@@ -88,12 +88,12 @@ echo "  tailscale up --authkey=YOUR_AUTH_KEY"
 echo "  tailscale status"
 echo ""
 echo "For more information, visit: https://tailscale.com/kb/1188/openwrt"
-EOF
+INSTALL_EOF
             
             chmod +x "tailscale-openwrt-$arch/install.sh"
             
             # Create README
-            cat > "tailscale-openwrt-$arch/README.md" << EOF
+            cat > "tailscale-openwrt-$arch/README.md" << 'README_EOF'
 # Tailscale for OpenWrt ($arch)
 
 This package contains a minimized Tailscale binary built specifically for OpenWrt devices.
@@ -107,22 +107,22 @@ This package contains a minimized Tailscale binary built specifically for OpenWr
 
 1. Extract this archive to your OpenWrt device
 2. Run the installation script:
-   \`\`\`bash
+   ```bash
    chmod +x install.sh
    ./install.sh
-   \`\`\`
+   ```
 
 ## Usage
 
 1. Start Tailscale:
-   \`\`\`bash
+   ```bash
    tailscale up --authkey=YOUR_AUTH_KEY
-   \`\`\`
+   ```
 
 2. Check status:
-   \`\`\`bash
+   ```bash
    tailscale status
-   \`\`\`
+   ```
 
 ## Binary Information
 
@@ -135,7 +135,7 @@ This package contains a minimized Tailscale binary built specifically for OpenWr
 For issues and documentation, visit:
 - [Tailscale OpenWrt Guide](https://tailscale.com/kb/1188/openwrt)
 - [Tailscale Community](https://github.com/tailscale/tailscale/discussions)
-EOF
+README_EOF
             
             # Create tar.gz archive
             tar -czf "../release-artifacts/tailscale-openwrt-$arch.tar.gz" "tailscale-openwrt-$arch"
